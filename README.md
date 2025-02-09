@@ -240,10 +240,13 @@ To deepen your understanding, consider exploring these resources:
 	•	Hands-On Machine Learning with Scikit-Learn, Keras & TensorFlow 2 by Aurelien Geron
 
 (The second part of this book covers advanced topics like RNNs, CNNs, and deep neural networks.)
-	•	Research Papers:
+
+	•	Research Papers
 	•	[Attention Is All You Need](https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf)
+
 	•	Libraries and Frameworks:
 	•	[PyTorch](https://pytorch.org)
+
 	•	TorchVision
 	•	[Captum](https://captum.ai)
 
