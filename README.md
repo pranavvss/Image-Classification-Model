@@ -1,250 +1,281 @@
-A deep learning model developed to classify tomatoes as either ripe or unripe using computer vision techniques. The project was inspired by the need to automate the sorting process in agricultural industries, particularly in the context of “FreshHarvest Inc.,” a hypothetical company that aims to improve crop yield and quality through advanced technology. The model leverages a Convolutional Neural Network (CNN) and employs techniques such as transfer learning using ResNet50, data augmentation, and integrated gradients for model interpretability. The model’s training process is monitored using TensorBoard to visualize training and validation losses, helping to ensure optimal model performance. Dataset was taken from www.kaggle.com, and model was trained in google colab.
+# Tomato Classification Model
 
------------------------------------------------------------------------
+A deep learning project that classifies tomatoes as either **ripe** or **unripe** using computer vision techniques. This project was developed to automate the sorting process in agricultural settings, inspired by a hypothetical business scenario for **FreshHarvest Inc.**. By leveraging Convolutional Neural Networks (CNNs), transfer learning (using pre-trained ResNet models), data augmentation, and interpretability tools like Integrated Gradients, the model aims to improve the quality control of tomato produce.
 
-**At a bigger scale it is entirely feasible to integrate this tomato classification model with an AI-driven machine (Robots), leveraging OpenCV for real-time image processing and control.**
-I could have made a prototype for this but to be honest I cant afford buying materials to build an robot arm.
+---
 
------------------------------------------------------------------------
+## Table of Contents
 
-<img src="https://github.com/user-attachments/assets/9b8a25a4-6c43-428a-86c5-be83a97f235f" alt="drawing" style="width:550px;"/>
+- [Project Overview](#project-overview)
+- [Business Problem & Motivation](#business-problem--motivation)
+- [Dataset and Data Preparation](#dataset-and-data-preparation)
+  - [Data Collection](#data-collection)
+  - [Data Wrangling and Exploratory Data Analysis](#data-wrangling-and-exploratory-data-analysis)
+  - [Data Preprocessing](#data-preprocessing)
+- [Model Architecture and Training](#model-architecture-and-training)
+  - [Vanilla CNN Model](#vanilla-cnn-model)
+  - [Training Loop and TensorBoard Monitoring](#training-loop-and-tensorboard-monitoring)
+  - [Transfer Learning with ResNet50](#transfer-learning-with-resnet50)
+- [Model Interpretability](#model-interpretability)
+- [Quantized Models & Efficiency](#quantized-models--efficiency)
+- [Semantic Segmentation Example](#semantic-segmentation-example)
+- [Results and Outcome](#results-and-outcome)
+- [Future Work](#future-work)
+- [Additional Resources](#additional-resources)
+- [Requirements](#requirements)
+- [Dataset Access](#dataset-access)
+- [Grayscale Usage](#grayscale-usage)
+- [Conclusion](#conclusion)
 
------------------------------------------------------------------------
+---
 
-Outcome - (losses started relatively high and decrease over time, this indicates the model was learning and improving its predictions).
+## Project Overview
 
-![image](https://github.com/user-attachments/assets/68d0f9c2-a6f7-4825-b768-71458982c9a1)
+This project presents a complete pipeline for classifying tomatoes by ripeness using deep learning. The model is developed in Google Colab and integrates several key steps:
 
+- **Data Ingestion and Preprocessing:** Reading images and labels from a Kaggle dataset.
+- **Model Development:** Building a CNN from scratch and fine-tuning a pre-trained ResNet50.
+- **Model Interpretability:** Using Integrated Gradients from the [Captum](https://captum.ai/) library to understand feature attributions.
+- **Quantization:** Discussing both pre-training and post-training quantization to improve efficiency on resource-constrained devices.
+- **Visualization:** Monitoring training progress and embedding visualizations with TensorBoard.
 
------------------------------------------------------------------------
+An example image of the project workflow is shown below:
 
-**Grayscale usuage** (It helps us to simplify an image by reducing the complexity of color information, which is an important part of this project).
+<img src="https://github.com/user-attachments/assets/9b8a25a4-6c43-428a-86c5-be83a97f235f" alt="Workflow Diagram" style="width:550px;"/>
 
-**Formula used - Gray = 0.2989 × R + 0.5870 × G + 0.1140 × B**
+---
 
-![image](https://github.com/user-attachments/assets/121fd512-634a-415b-9324-0882f552ef97)
-![image](https://github.com/user-attachments/assets/ca8650e8-e4ba-4c0e-8fcd-8480a60e8ba6)
+## Business Problem & Motivation
 
------------------------------------------------------------------------
+Modern agricultural practices increasingly rely on automation to enhance crop quality and yield. **FreshHarvest Inc.**—a hypothetical agricultural technology company—is looking to replace manual tomato sorting with an automated system. Manual sorting is:
+- **Time-consuming**
+- **Labor-intensive**
+- **Prone to human error**
 
-**Highly Recommended books (You must read to master Deep learning, Tensor Flow, Data Science)**
+By deploying a robust tomato classification model, the company aims to:
+- Reduce labor costs.
+- Increase sorting speed.
+- Improve the overall quality of tomatoes sent to market.
 
-- Python Data Science Handbook: Essential Tools For Working With Data by Jake VanderPlas
-- HANDS ON MACHINE LEARNING WITH SCIKIT LEARN, KERAS & TENSORFLOW 2 by Aurelien Geron
-  (This book is in two parts the second part is more important it talks about Tensorflow basics-advance, Here you'll learn RNN, CNN, Neural Networks etc)
+---
 
-- Read a paper which is very important (Attention is all you need) 
- [Link to the Document](https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf)
+## Dataset and Data Preparation
 
+### Data Collection
 
------------------------------------------------------------------------
+The dataset comprises **177 images** of tomatoes along with corresponding label files indicating whether a tomato is ripe or unripe. The data was sourced from [Kaggle](https://www.kaggle.com/datasets/sumn2u/riped-and-unriped-tomato-dataset).
 
-**Requirements**
+### Data Wrangling and Exploratory Data Analysis
+
+- **Data Wrangling:**  
+  - Removed corrupted images.
+  - Ensured accurate matching between images and labels.
+  - Verified image quality.
+
+- **Exploratory Data Analysis (EDA):**  
+  - Visualized the distribution of classes (ripe vs. unripe) to check for imbalance.
+  - Displayed sample images along with their labels.
+
+Example code to visualize an image sample:
+
+```python
+test_img = Image.open(first_sample)
+plt.imshow(np.asarray(test_img))
+plt.show()
+```
+
+### Data Preprocessing
+
+Preprocessing steps are critical for model performance:
+	•	Resizing: Images are resized to 224x224 pixels.
+	•	Normalization: Images are normalized using ImageNet’s mean and standard deviation values.
+	•	Data Augmentation: Techniques such as rotation, flipping, zooming, and shifting are applied to artificially increase dataset diversity.
+
+A typical transformation pipeline is defined as:
+
+```python
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
+```
+
+## Model Architecture and Training
+
+### Vanilla CNN Model
+
+The project begins with a vanilla CNN developed from scratch. This network includes:
+	•	Two convolutional layers with ReLU activations and max pooling.
+	•	Fully connected layers that output a binary prediction (ripe or unripe).
+
+This simple model serves as a foundation before exploring more advanced methods like transfer learning.
+
+### Training Loop and TensorBoard Monitoring
+
+The training loop involves:
+	•	Loss Function: Binary Cross-Entropy with logits.
+	•	Optimizer: Adam, with learning rate adjustments based on training dynamics.
+	•	TensorBoard: Used to visualize training and validation loss metrics.
+
+An excerpt from the training loop:
+
+```python
+for epoch in range(num_epochs):
+    for i, (inputs, labels) in enumerate(train_dataloader):
+        optimizer.zero_grad()
+        output = model(inputs)
+        loss = loss_fn(output, labels)
+        loss.backward()
+        optimizer.step()
+```
+TensorBoard logging example:
+
+```python
+writer.add_scalars('Training vs. Validation Loss',
+                   {'Training': avg_loss, 'Validation': avg_vloss},
+                   epoch * len(train_dataloader) + i)
+```
+### Transfer Learning with ResNet50
+
+To improve performance and speed up training, the project leverages transfer learning with ResNet50:
+	•	Pre-trained Weights: Utilizes ResNet50_Weights.DEFAULT.
+	•	Model Modification: The final fully connected (FC) layer is replaced to output two classes.
+	•	Layer Freezing: All layers except the new FC layer are frozen to retain previously learned features.
+	•	Fine-Tuning: The modified network is fine-tuned on the tomato dataset.
+
+Modification example:
+
+```python
+num_features = model.fc.in_features
+model.fc = nn.Linear(num_features, 2)
+for param in model.parameters():
+    param.requires_grad = False
+for param in model.fc.parameters():
+    param.requires_grad = True
+```
+
+## Model Interpretability
+
+Understanding model predictions is crucial. The project uses Integrated Gradients from Captum to visualize which parts of an image contribute most to the model’s decision. This helps verify that the model focuses on the correct features.
+
+Example usage:
+
+```python
+integrated_gradients = IntegratedGradients(model)
+attributions_ig = integrated_gradients.attribute(image, target=label, n_steps=200)
+```
+
+### Quantized Models & Efficiency
+
+Quantization reduces model size and speeds up inference by converting 32-bit floating point weights to lower-precision formats (e.g., 8-bit integers). Two strategies are covered:
+	•	Post-training Quantization (PTQ): Quantizes a trained model.
+	•	Quantization-Aware Training (QAT): Trains the model while simulating quantization effects.
+
+Important concepts:
+	•	Symmetric vs. Asymmetric Quantization:
+	•	Symmetric: Zero point is typically zero.
+	•	Asymmetric: Zero point is calculated based on data distribution.
+	•	Fake Quantization: Used in QAT to simulate quantization effects during training.
+
+Code snippet for tensor quantization:
+
+```python
+quint8_tensor = torch.quantize_per_tensor(preprocessed_img, scale=1.0, zero_point=0, dtype=torch.quint8)
+dequantized_tensor = quint8_tensor.dequantize()
+```
+
+## Semantic Segmentation Example
+
+Beyond classification, the project demonstrates semantic segmentation using FCN ResNet50. This model labels each pixel in an image, with the output visualized as a segmentation mask.
+
+Example code:
+
+```python
+model = fcn_resnet50(weights=FCN_ResNet50_Weights.DEFAULT)
+with torch.no_grad():
+    prediction = model(batch)["out"]
+mask = prediction.softmax(dim=1)[0, class_to_idx["dog"]]
+to_pil_image(mask).show()
+```
+This example shows how similar techniques can be applied to more complex computer vision tasks.
+
+## Results and Outcome
+	•	Training Outcome:
+	•	Training and validation losses steadily decreased, demonstrating effective learning.
+	•	Accuracy: The models achieved up to 83% accuracy on the validation set.
+	•	Although the goal was to reach above 90%, the achieved accuracy is promising given the dataset size and model complexity.
+	•	Visualization:
+	•	TensorBoard was used to monitor the training process, providing valuable insights into model performance.
+
+Example loss curve visualization:
+
+![image](https://github.com/user-attachments/assets/a1ba4cba-acd9-4535-b019-c9ee68125bb9)
+
+## Future Work
+
+Potential improvements include:
+	•	Expanding the Dataset: A larger, more diverse dataset may improve model generalization.
+	•	Robotic Integration: Combining the model with AI-driven robots using OpenCV for real-time image processing and control.
+	•	Advanced Architectures: Experimenting with state-of-the-art models and further fine-tuning with quantization-aware training (QAT) for deployment on edge devices.
+	•	Deployment: Developing a prototype or web service to demonstrate real-time tomato sorting.
+
+## Additional Resources
+
+To deepen your understanding, consider exploring these resources:
+	•	Books:
+	•	[Python Data Science Handbook: Essential Tools For Working With Data by Jake VanderPlas](https://github.com/jakevdp/PythonDataScienceHandbook)
+	•	Hands-On Machine Learning with Scikit-Learn, Keras & TensorFlow 2 by Aurelien Geron
+
+(The second part of this book covers advanced topics like RNNs, CNNs, and deep neural networks.)
+	•	Research Papers:
+	•	[Attention Is All You Need](https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf)
+	•	Libraries and Frameworks:
+	•	[PyTorch](https://pytorch.org)
+	•	TorchVision
+	•	[Captum](https://captum.ai)
+
+## Requirements
 
 To run this project, ensure that your environment meets the following requirements:
+	•	Python: 3.6 or higher
+	•	PyTorch: 1.7.0 or higher
+	•	TorchVision: 0.8.1 or higher
+	•	Captum: 0.4.0 or higher
+	•	Pandas: 1.1.5 or higher
+	•	Matplotlib: 3.3.2 or higher
+	•	Pillow: 7.2.0 or higher
+	•	TensorBoard: 2.3.0 or higher
+	•	Google Colab: Recommended for running the notebook
 
-	•	Python 3.6 or higher
-	•	Torch 1.7.0 or higher
-	•	TorchVision 0.8.1 or higher
-	•	Captum 0.4.0 or higher
-	•	Pandas 1.1.5 or higher
-	•	Matplotlib 3.3.2 or higher
-	•	Pillow 7.2.0 or higher
-	•	Google Colab (for running the notebook)
-	•	TensorBoard 2.3.0 or higher (for visualizing the training process)
- 
------------------------------------------------------------------------
+Install the required packages with:
 
------------------------------------------------------------------------
+```
+pip install torch torchvision captum matplotlib tensorboard pandas pillow
+```
 
-I was not able to upload the data set as the file was too large. If you want the exact set of data with which i am working.
-Here is the link to -  [Data Set](https://www.kaggle.com/datasets/sumn2u/riped-and-unriped-tomato-dataset).
+## Dataset Access
 
------------------------------------------------------------------------
+Due to file size constraints, the dataset is not included in this repository. You can download the dataset from Kaggle:
+	•	[Riped and Unriped Tomato Dataset](https://www.kaggle.com/datasets/sumn2u/riped-and-unriped-tomato-dataset)
 
-## General Steps we are following (Just an overview)
+## Grayscale Usage
 
-1. Problem Statement Hypothetical Business Situation: Tomato Classification Model Background You are working as a data scientist for "FreshHarvest Inc.," a leading agricultural technology company that specializes in providing innovative solutions to improve crop yield and quality. The company has recently partnered with several large tomato farms to help them automate the sorting process of ripe and unripe tomatoes. The goal is to build an accurate and efficient classification model to distinguish between ripe and unripe tomatoes, ensuring that only the best quality produce reaches the market. Business Need Tomato sorting is currently done manually, which is time-consuming, labor-intensive, and prone to human error. FreshHarvest Inc. aims to implement an automated system that uses computer vision and machine learning to classify tomatoes based on ripeness. This system will reduce labor costs, increase sorting speed, and improve the overall quality of tomatoes sent to market.
+Converting images to grayscale reduces complexity by focusing on intensity rather than color. The grayscale conversion formula is:
 
-2. Data Collection Kaggle - 177 images and labels of mixed riped and unriped tomatos.
+[
+\text{Gray} = 0.2989 \times R + 0.5870 \times G + 0.1140 \times B
+]
 
-3. Data Wrangling Remove Corrupted Images Ensure label accuracy Image Quality
+Grayscale image examples:
 
-4. Exploratory Data Analysis Distribution of Classes: Check the distribution of ripe and unripe tomatoes to ensure there is no significant class imbalance.
+![image](https://github.com/user-attachments/assets/05ac0868-7322-4267-abe3-6fba4e5e2b63)
+![image](https://github.com/user-attachments/assets/8bf10103-3e32-4cc9-9e64-3341a17a85a2)
 
-5. PreProcessing Data Augmentation: rotation, flipping, zooming, and shifting to artificially increase the diversity of the dataset Normalization: Normalize the pixel values of the images to a range of [0, 1] to improve model training stability.
+## Conclusion
 
-6. Build and Train model CNN
+This project demonstrates a comprehensive approach to automating tomato sorting in agricultural settings. By combining classical CNN architectures with transfer learning, interpretability methods, and quantization techniques, we have built a system capable of distinguishing between ripe and unripe tomatoes. Although the current model achieves 83% accuracy, further data collection, experimentation, and integration with hardware could push performance even higher.
 
-7. Test model Binary Cross Entropy
+At a larger scale, it is entirely feasible to integrate this tomato classification model with AI-driven robotics and real-time image processing using OpenCV.
 
-8. Deploy! model.save_dict()
-
-
------------------------------------------------------------------------
-
-## Technical Steps:
-
-Step 1: We have to create a dataset -> dataloader
-It's important to preprocess the data
-
-Step 2: visualize the images with it's corresponding labels.
-
-Step 3: Create a model
-- You either choose a model (If you are a beginner, you should choose a pre exisiting model.)
-- Or Build a model
-
-Step 4: Depending on overfitting / underfitting
-- Tweak the learnable parameters.
-  
-Step 5: Use Integral attribution to explain features.
-
------------------------------------------------------------------------
-
-## Transfer Learning
-
-There's multipel versions of pretrained models for ResNet. V1 has less accuracy (the oldest version) and V2 has the newest version (the new veresion).
-
-There are several reasons why old versions of models and weights are maintained and made available even when newer versions with better performance exist. Here are some key reasons:
-
-1. Backward Compatibility Existing Workflows: Many organizations and developers have existing workflows, scripts, and models that rely on older versions of the weights. Updating these workflows to use newer versions might require significant changes and testing. Reproducibility: Scientific research and publications often cite specific versions of models and weights. Keeping older versions ensures that results can be reproduced and validated by others.
-
-2. Performance Trade-offs Inference Speed: In some cases, newer versions of weights might provide better accuracy but at the cost of increased computational resources or longer inference times. Users might prefer older versions for applications where speed is more critical than accuracy. Memory Usage: Newer models might require more memory, making them unsuitable for deployment on devices with limited resources.
-
-3. Baseline Comparisons Benchmarking: Older versions serve as baselines for comparing the performance of new models and weights. This is crucial for understanding the improvements and trade-offs of newer versions. Algorithm Development: Researchers and developers often need to compare their new algorithms against established baselines to demonstrate improvements.
-
-4. Model Training and Fine-Tuning Transfer Learning: Some users may prefer to start with older weights for specific transfer learning tasks, depending on the characteristics of their datasets or the specific features learned by the older weights. Training Stability: Older weights might be preferred in certain scenarios where they have shown to provide more stable training or convergence properties for specific tasks.
-
-5. Historical Context Legacy Systems: Some legacy systems and applications are built with older versions of models. Changing these systems might not be feasible due to regulatory, technical, or financial constraints. Documentation and Tutorials: Many educational resources, tutorials, and documentation are built around older versions of models. Maintaining these versions ensures that learners and practitioners can follow along with existing educational material.
-   
------------------------------------------------------------------------
-
-## what is quantized machine learning/ quantized weights
-
-Quantization has couple benefits and concepts:
-
-1. Floating point to integer:
--quantization typically involves converting 32-bit floating point numbers (FP32) to lower precision formats such as 8 bits (INT8).
-
-2. Efficiency improvement: Memory Footprint: Lower precision numbers require less memory, leading to a reduced memory footprint for the model. Inference Speed: Integer arithmetic operations are faster and more power-efficient than floating-point operations, resulting in faster inference times and lower power consumption.
-   
-3. Types of quantization:
-- post: the model is trained in full precision and quantization is applied after training. Small loss of accuracy but simpler.
-
-- pre(quantization aware training): Model is trained with quantization in mind, simulating the effects of quantization during the training process. Preserves more accuracy.
-
-- se Cases:
-Good for mobile devices/applications where computational power and battery life are constrained.
-
-- Use Cases:
-Regular Weights: Preferred for training and tasks requiring high precision and large computational resources. Quantized Weights: Preferred for deployment and inference on resource-constrained devices where speed and efficiency are prioritized over minimal accuracy loss.
-
-Quantized Weights: Often require a process called Quantization Aware Training (QAT) or post-training quantization to convert the FP32 weights to INT8 while attempting to minimize the impact on model accuracy.
-
-Example in Context For instance, in the context of the MobileNetV3
-
-model: MobileNet_V3_Large_QuantizedWeights.
-
-IMAGENET1K_QNNPACK_V1:
-
-These quantized weights are optimized for inference on CPUs using QNNPACK backend, suitable for mobile and edge devices.
-
-MobileNet_V3_Large_Weights.
-
-IMAGENET1K_V2: These are regular FP32 weights, providing slightly better accuracy and suitable for environments where computational resources are less constrained.
-
-Important Note about quantization
-PyTorch supports INT8 quantization compared to regular FP32 models(float) for a 4x reducton in the model size and 4x reduction in memory bandwidth requirements.
-
------------------------------------------------------------------------
-
-## How quantization works:
-
-Symmetric quantization:
-The range of the floating-point numbers is symmetrically distributed around zero.
-
-Scaling factor:
-s = max(abs(min), abs(max)) / (2^b-1 - 1)
-
-zero point = z = 0
-
-- quantization: q = round(x/s)
-
-- dequantization: x = q * s
-
-- Asymmetric quantization: In asymmetric quantization, the range of the floating-point numbers is not necessarily centered around zero. This approach uses a zero point to handle cases where the distribution of values does not include zero or is not symmetric around zero.
-
-Scaling factor: s = (max - min) / (2^b - 1)
-
-Zero Point: z = round(-min/s)
-quantization: q = round(x/s) + z
-
-dequatization: x = (q-z)*s
-
-''''''''''''''''''''''''''''''''''''general equation underneath:----------
-
-The linear quantization:
-
-q = round((x - min)÷s)
-
-When we linearly dequantize:
-
-x = q * s + min
-
-s - Scaling value
-
-This is the most important parameter.
-
-s = (max-min)/(2^b - 1)
-
-if you want 8 bit quantization, you put 8 in the b.
-
-min = -0.8, max = 0.6
-
-s = (0.6-(-0.8)) / 255 = 1.4/255 = 0.0055
-
-Zero Point (z):
-
-z = is the real number zero. z = for symmetric quantization, the zero point is usually zero. For asymmetric, it is z = -min/s
-
------------------------------------------------------------------------
-
-## Quantization-Aware Training (Pre quantization)
-
-During training, quantization-aware training (QAT) simulates quantization effects in the forward and backward passes to improve the robustness of the model when weights and activations are quantized during inference.
-
-Fake Quantization: In QAT, "fake" quantization is applied where values are quantized and dequantized during training:
-
-quantized x = s * round(x/s)
-
-This ensures that the model learns weights that are robust to quantization.
-
-Gradient Propagation: During backpropagation, gradients are calculated based on the fake quantized values, allowing the model to adjust the weights to minimize the quantization error.
-
------------------------------------------------------------------------
-
-## Post Quantization
-
-Post-training quantization (PTQ) involves training the model with full precision and then quantizing it afterward. This can be done in several ways:
-
-Static Quantization: Calibrate the model using a representative dataset to determine the appropriate scale and zero points.
-
-Dynamic Quantization: Quantize weights statically but dynamically quantize activations during inference.
-
------------------------------------------------------------------------
-
-## Pre-training Quantization 
-
-Pre-training quantization is the process of training a neural network directly with quantized weights and activations from the beginning. This approach is also known as Quantization-Aware Training (QAT).
-
-Post-training Quantization Post-training quantization is the process of converting a fully trained model (using full precision weights) to a quantized version after the training has completed. This is also known as Post-Training Quantization (PTQ).
-
-Pre-training Quantization (QAT) involves training a model with quantization effects simulated during training, allowing the model to learn and adjust for quantization-induced errors, often resulting in higher accuracy for the quantized model. Post-training Quantization (PTQ) involves converting a fully trained model to a quantized version, offering simplicity and flexibility at the potential cost of a slight drop in accuracy, which can be mitigated using calibration techniques.
-
------------------------------------------------------------------------
-
-### GOAL 
-My goal is to reach above 90% accuracy with my model.
-
-### GOAL ACHIEVED
-My model was able to achieve 83% accuracy.
+# Happy coding and happy farming!
