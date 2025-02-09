@@ -79,6 +79,9 @@ The dataset comprises **177 images** of tomatoes along with corresponding label 
 Example code to visualize an image sample:
 
 ```python
+import matplotlib.pyplot as plt
+from PIL import Image
+
 test_img = Image.open(first_sample)
 plt.imshow(np.asarray(test_img))
 plt.show()
@@ -87,13 +90,15 @@ plt.show()
 ### Data Preprocessing
 
 Preprocessing steps are critical for model performance:
-	•	Resizing: Images are resized to 224x224 pixels.
-	•	Normalization: Images are normalized using ImageNet’s mean and standard deviation values.
-	•	Data Augmentation: Techniques such as rotation, flipping, zooming, and shifting are applied to artificially increase dataset diversity.
+- **Resizing:** Images are resized to 224x224 pixels.
+- **Normalization:** Images are normalized using ImageNet’s mean and standard deviation values.
+- **Data Augmentation:** Techniques such as rotation, flipping, zooming, and shifting are applied to artificially increase dataset diversity.
 
 A typical transformation pipeline is defined as:
 
 ```python
+import torchvision.transforms as transforms
+
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
@@ -101,22 +106,24 @@ transform = transforms.Compose([
 ])
 ```
 
+---
+
 ## Model Architecture and Training
 
 ### Vanilla CNN Model
 
 The project begins with a vanilla CNN developed from scratch. This network includes:
-	•	Two convolutional layers with ReLU activations and max pooling.
-	•	Fully connected layers that output a binary prediction (ripe or unripe).
+- Two convolutional layers with ReLU activations and max pooling.
+- Fully connected layers that output a binary prediction (ripe or unripe).
 
 This simple model serves as a foundation before exploring more advanced methods like transfer learning.
 
 ### Training Loop and TensorBoard Monitoring
 
 The training loop involves:
-	•	Loss Function: Binary Cross-Entropy with logits.
-	•	Optimizer: Adam, with learning rate adjustments based on training dynamics.
-	•	TensorBoard: Used to visualize training and validation loss metrics.
+- **Loss Function:** Binary Cross-Entropy with logits.
+- **Optimizer:** Adam, with learning rate adjustments based on training dynamics.
+- **TensorBoard:** Used to visualize training and validation loss metrics.
 
 An excerpt from the training loop:
 
@@ -129,24 +136,27 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
 ```
+
 TensorBoard logging example:
 
 ```python
+from torch.utils.tensorboard import SummaryWriter
+
+writer = SummaryWriter('runs/tomato_classification')
 writer.add_scalars('Training vs. Validation Loss',
                    {'Training': avg_loss, 'Validation': avg_vloss},
                    epoch * len(train_dataloader) + i)
 ```
+
 ### Transfer Learning with ResNet50
 
-To improve performance and speed up training, the project leverages transfer learning with ResNet50:
-	•	Pre-trained Weights: Utilizes ResNet50_Weights.DEFAULT.
-	•	Model Modification: The final fully connected (FC) layer is replaced to output two classes.
-	•	Layer Freezing: All layers except the new FC layer are frozen to retain previously learned features.
-	•	Fine-Tuning: The modified network is fine-tuned on the tomato dataset.
-
-Modification example:
+To improve performance and speed up training, the project leverages transfer learning with ResNet50.
 
 ```python
+import torch.nn as nn
+import torchvision.models as models
+
+model = models.resnet50(pretrained=True)
 num_features = model.fc.in_features
 model.fc = nn.Linear(num_features, 2)
 for param in model.parameters():
@@ -155,13 +165,15 @@ for param in model.fc.parameters():
     param.requires_grad = True
 ```
 
+---
+
 ## Model Interpretability
 
-Understanding model predictions is crucial. The project uses Integrated Gradients from Captum to visualize which parts of an image contribute most to the model’s decision. This helps verify that the model focuses on the correct features.
-
-Example usage:
+To interpret model decisions, we use **Integrated Gradients** from Captum.
 
 ```python
+from captum.attr import IntegratedGradients
+
 integrated_gradients = IntegratedGradients(model)
 attributions_ig = integrated_gradients.attribute(image, target=label, n_steps=200)
 ```
